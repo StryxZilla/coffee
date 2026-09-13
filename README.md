@@ -19,7 +19,7 @@ Geography: [Natural Earth 1:110m countries](https://www.naturalearthdata.com/dow
 
 ## Hosting
 
-This repository can be served unchanged by GitHub Pages or any static HTTPS host. For GitHub Pages, choose **Settings → Pages → Deploy from a branch → main → / (root)**. The expected project URL is `https://stryxzilla.github.io/coffee/`; confirm the deployment before sharing it. HTTPS hosting is required for convenient access from a phone away from the local computer.
+The live app is [Coffee Atlas](https://stryxzilla.github.io/coffee/). This repository can be served unchanged by GitHub Pages or any static HTTPS host. GitHub Pages uses **main → / (root)**. HTTPS hosting allows access from a phone away from the local computer.
 
 No secrets, environment variables, npm install, backend, or build command are needed. The only application file required by the host is `index.html`; `.nojekyll` disables Jekyll processing.
 

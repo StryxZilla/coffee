@@ -61,12 +61,12 @@ function render(){
  const titles={production:['A world of origins','Bar height = annual green coffee production'],cost:['The economics of growing','Bar height = estimated farm cost per kg'],mix:['Two beans. Many growing systems.','Equal-height bars = each origin’s full bean mix'],flows:[`From ${country().name} to the world`,'Animated paths = modeled exports to four markets']};
  $('mapTitle').textContent=titles[mode][0];$('mapCaption').textContent=titles[mode][1];
  $('mapHint').textContent=mode==='mix'?'Filters choose origins; these bars always show their full bean mix.':mode==='flows'?'Routes are illustrative connections, not shipping lanes.':filter==='arabica'||filter==='robusta'?`${type} volumes shown; country details describe the whole origin.`:'Select an origin to explore its growing system.';
- $('legend').innerHTML=mode==='cost'?'<span><i class="dot amber"></i>Estimated farm cost</span><span>$1.00/kg = 48 map units</span>':mode==='flows'?'<span><i class="dot"></i>Export destination</span><span>Thicker route = greater volume</span>':`<span><i class="dot"></i>Arabica</span><span><i class="dot amber"></i>Robusta</span><span>${mode==='mix'?'Full origin mix · 100%':'1 million t = 38 map units'}</span>`;
+ $('legend').innerHTML=mode==='cost'?'<span><i class="dot amber"></i>Estimated farm cost</span><span>USD / kg green coffee</span>':mode==='flows'?'<span><i class="dot"></i>Export destination</span><span>Thicker route = greater volume</span>':`<span><i class="dot"></i>Arabica</span><span><i class="dot amber"></i>Robusta</span><span>${mode==='mix'?'Full origin mix · 100%':'Green coffee · thousand tonnes'}</span>`;
  document.querySelectorAll('.land.producer').forEach(p=>{p.classList.toggle('selected',p.dataset.country===selected);p.classList.toggle('filtered',!items.some(c=>c.id===p.dataset.country));});
  drawBars(items);drawFlows();renderDetail();renderTable(items);renderChain();applyZoom();
 }
 function drawBars(items){
- const offsets={BRA:[23,13],VNM:[16,-7],COL:[-83,15],ETH:[18,-12],IDN:[18,16],HND:[-88,-10],IND:[-45,-5],UGA:[-68,22]};
+ const offsets={BRA:[23,13],VNM:[16,-7],COL:[-83,15],ETH:[18,-12],IDN:[18,16],HND:[-88,-10],IND:[18,10],UGA:[-68,22]};
  $('bars').innerHTML=items.map(c=>{
  const [x,y]=point(c.pos),h=mode==='production'?volume(c)/1000*38:mode==='cost'?c.cost*48:mode==='mix'?88:20,w=mode==='mix'?16:13,a=filter==='arabica'&&mode==='production'?100:filter==='robusta'&&mode==='production'?0:c.arabica,ah=h*a/100;
  const [dx,dy]=offsets[c.id],color=mode==='cost'?'#edb16c':a>50?'#a4e6bc':'#edb16c';
@@ -108,6 +108,7 @@ $('zoomIn').onclick=()=>{zoom=Math.min(2.5,zoom+.5);applyZoom()};$('zoomOut').on
 for(const id of ['about','methodology'])$(id).onclick=()=>$('dataDialog').showModal();
 $('dataDialog').addEventListener('click',e=>{if(e.target===$('dataDialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close()}});
 $('mapWrap').addEventListener('pointermove',e=>{const marker=e.target.closest('[data-origin]');if(!marker){$('tip').style.display='none';return}const c=origins.find(o=>o.id===marker.dataset.origin),r=$('mapWrap').getBoundingClientRect();$('tip').innerHTML=`<strong>${c.name}</strong>${fmt(volume(c))}k t · ${money(c.cost)}/kg`;Object.assign($('tip').style,{display:'block',left:Math.max(6,Math.min(e.clientX-r.left+14,r.width-215))+'px',top:Math.max(6,e.clientY-r.top-65)+'px'})});$('mapWrap').addEventListener('pointerleave',()=>$('tip').style.display='none');
+document.defaultView?.addEventListener('resize',applyZoom);
 render();
 </script>
 </body></html>
