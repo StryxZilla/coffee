@@ -97,18 +97,51 @@ test('composition summary, map, and selected origin preserve both bean shares', 
   assert.match(a.el('metrics').innerHTML,/Arabica/);
   assert.match(a.el('metrics').innerHTML,/Robusta/);
 });
-test('map marks stay compact and expanded origins can be selected', () => {
+test('flat map colors reflect each layer and expanded origins can be selected', () => {
   const a=app();
   for(const mode of ['production','cost','mix']){
     a.run(`mode='${mode}';render()`);
-    const marks=[...a.el('bars').innerHTML.matchAll(/class="bar-front"[^>]*width="([\d.]+)" height="([\d.]+)"/g)];
+    const marks=[...a.el('bars').innerHTML.matchAll(/class="anchor"[^>]*r="([\d.]+)"/g)];
     assert.equal(marks.length,34);
-    assert.ok(marks.every(m=>Number(m[1])<=6&&Number(m[2])<=76));
+    assert.ok(marks.every(m=>Number(m[1])<=3.5));
+    assert.doesNotMatch(a.el('bars').innerHTML,/bar-front|arabica-segment/);
   }
+  assert.equal(a.run("mode='mix';countryColor({...country(),arabica:100})"),'#a4e6bc');
+  assert.equal(a.run('countryColor({...country(),arabica:0})'),'#edb16c');
+  const colors=a.run("new Set(['production','cost','mix','flows'].map(m=>{mode=m;return countryColor(country())})).size");
+  assert.equal(colors,4);
   for(const id of ['PER','JAM','RWA','CIV','PNG','CHN']){
     a.run(`selectCountry('${id}')`);
     assert.match(a.el('detail').innerHTML,new RegExp(a.run('country().name')));
   }
+});
+test('table columns sort both ways without changing selected origin or camera',()=>{
+  const a=app();
+  assert.equal(a.run('sortedOrigins(eligible())[0].id'),'BRA');
+  a.run("zoom=2;applyZoom();panTo(-200,-160);changeSort('origin')");
+  assert.equal(a.run('sortedOrigins(eligible())[0].id'),'BOL');
+  assert.match(a.el('tableHead').innerHTML,/aria-sort="ascending"/);
+  assert.equal(a.run('selected'),'BRA');assert.equal(a.run('camera.x'),-200);
+  assert.match(a.el('countryRows').innerHTML,/data-select="BRA"[^>]+aria-pressed="true"/);
+  a.run("changeSort('origin')");assert.equal(a.run('sortedOrigins(eligible())[0].id'),'VNM');
+  a.run("changeSort('metric')");assert.equal(a.run('sortedOrigins(eligible())[0].id'),'BRA');
+  a.run("changeSort('metric')");assert.equal(a.run('sortedOrigins(eligible())[0].id'),'JAM');
+  a.run("setMode('cost');changeSort('secondary')");assert.equal(a.run('sortedOrigins(eligible())[0].id'),'VNM');
+  a.run("changeSort('secondary')");assert.equal(a.run('sortedOrigins(eligible())[0].id'),'COD');
+  a.run("setMode('production')");assert.equal(a.run('sortedOrigins(eligible())[0].id'),'JAM');
+  a.run("filter='robusta';renderTable(eligible())");assert.equal(a.run('sortedOrigins(eligible())[0].id'),'CMR');
+  assert.match(a.el('tableHead').innerHTML,/aria-sort="ascending"/);
+});
+test('sorting leaves inputs unchanged and tie order is deterministic',()=>{
+  const a=app();const before=a.run('origins.map(c=>c.id).join()');
+  for(const mode of ['production','cost','mix','flows'])for(const key of ['origin','metric','secondary'])for(const direction of ['asc','desc']){
+    a.run(`mode='${mode}';tableSort[mode]={key:'${key}',direction:'${direction}'};renderTable(eligible())`);
+    assert.equal(a.run('origins.map(c=>c.id).join()'),before);
+    assert.equal((a.el('countryRows').innerHTML.match(/data-select=/g)||[]).length,34);
+    assert.doesNotMatch(a.el('countryRows').innerHTML,/NaN|undefined/);
+  }
+  a.run("mode='production';tableSort.production={key:'metric',direction:'desc'}");
+  assert.equal(a.run("sortedOrigins(eligible()).filter(c=>c.production===360).map(c=>c.id).join()"),'HND,IND');
 });
 test('selection, supply chain, call-to-action, and zoom boundaries work', () => {
   const a = app();
