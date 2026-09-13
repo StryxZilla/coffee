@@ -32,31 +32,35 @@ test('standalone entrypoint has geometry and no external runtime assets', () => 
 });
 test('sample totals, bag conversion, and default origin are correct', () => {
   const a = app();
-  assert.equal(a.run('origins.reduce((sum,c)=>sum+c.production,0)'), 8700);
+  assert.equal(a.run('origins.reduce((sum,c)=>sum+c.production,0)'), 10389.5);
   assert.equal(a.run('selected'), 'BRA');
-  assert.match(a.el('metrics').innerHTML, /8\.7<small>million t/);
-  assert.match(a.el('metrics').innerHTML, /145 million 60 kg bags/);
+  assert.match(a.el('metrics').innerHTML, /10\.4<small>million tonnes/);
+  assert.match(a.el('metrics').innerHTML, /173\.2 million 60 kg bags/);
   assert.match(a.el('detail').innerHTML, /Brazil/);
-  assert.equal((a.el('bars').innerHTML.match(/class="marker"/g) || []).length, 8);
+  assert.equal((a.el('bars').innerHTML.match(/class="marker(?: active)?"/g) || []).length, 34);
 });
 test('all origin allocations and economics are internally consistent', () => {
   const a = app();
-  assert.equal(a.run('origins.length'), 8);
-  assert.equal(a.run('new Set(origins.map(c=>c.id)).size'), 8);
+  assert.equal(a.run('origins.length'), 34);
+  assert.equal(a.run('new Set(origins.map(c=>c.id)).size'), 34);
   assert.equal(a.run('origins.every(c=>c.flows.reduce((s,f)=>s+f[1],0)===100 && c.split.reduce((s,n)=>s+n,0)===100)'), true);
   assert.equal(a.run('origins.every(c=>c.cost>0&&c.yield>0&&c.exports>=0&&c.exports<=100&&c.arabica>=0&&c.arabica<=100)'), true);
   assert.equal(a.run('origins.every(c=>data.some(g=>g.iso===c.id)&&c.flows.every(f=>markets[f[0]]))'), true);
 });
-test('bean filters conserve volume and exclude incompatible origins', () => {
+test('origin-based bean filters form a disjoint, exhaustive partition', () => {
   const a = app();
-  assert.equal(a.run("filter='arabica'; eligible().length"), 8);
+  assert.equal(a.run("filter='arabica'; eligible().length"), 21);
+  assert.equal(a.run('eligible().every(c=>c.arabica>=80 && volume(c)===c.production)'), true);
   const arabica = a.run('eligible().reduce((s,c)=>s+volume(c),0)');
   assert.equal(a.run("filter='robusta'; eligible().length"), 5);
+  assert.equal(a.run('eligible().every(c=>c.arabica<=20 && volume(c)===c.production)'), true);
   const robusta = a.run('eligible().reduce((s,c)=>s+volume(c),0)');
-  assert.ok(Math.abs(arabica + robusta - 8700) < 0.000001);
-  assert.equal(a.run("filter='mixed'; eligible().length"), 4);
+  assert.equal(a.run("filter='mixed'; eligible().length"), 8);
+  const mixed = a.run('eligible().reduce((s,c)=>s+volume(c),0)');
+  assert.equal(a.run('eligible().every(c=>c.arabica>20&&c.arabica<80)'), true);
+  assert.ok(Math.abs(arabica + robusta + mixed - 10389.5) < 0.000001);
   a.run("filter='robusta'; selected='COL'; document.getElementById('beanFilter').onchange({target:{value:'robusta'}})");
-  assert.equal(a.run('selected'), 'BRA');
+  assert.equal(a.run('selected'), 'VNM');
 });
 test('every layer, filter, and eligible country renders valid content', () => {
   const a = app(); let combinations = 0;
@@ -69,13 +73,41 @@ test('every layer, filter, and eligible country renders valid content', () => {
         for (const el of ['metrics','detail','bars','routes','countryRows','chainBody']) {
           assert.doesNotMatch(a.el(el).innerHTML, /NaN|undefined|Infinity/, `${mode}/${filter}/${id}/${el}`);
         }
-        assert.equal((a.el('bars').innerHTML.match(/class="marker"/g) || []).length, ids.length);
+        assert.equal((a.el('bars').innerHTML.match(/class="marker(?: active)?"/g) || []).length, ids.length);
         assert.equal((a.el('routes').innerHTML.match(/class="route"/g) || []).length, mode === 'flows' ? 4 : 0);
         combinations++;
       }
     }
   }
-  assert.equal(combinations, 100);
+  assert.equal(combinations, 272);
+});
+test('composition summary, map, and selected origin preserve both bean shares', () => {
+  const a=app();
+  for(const filter of ['all','arabica','robusta','mixed']){
+    a.run(`filter='${filter}';selected=eligible()[0].id;mode='mix';render()`);
+    const share=a.run('Math.round(eligible().reduce((s,c)=>s+c.production*c.arabica/100,0)/eligible().reduce((s,c)=>s+c.production,0)*100)');
+    assert.match(a.el('metrics').innerHTML,new RegExp(`Production in view: ${share}% Arabica, ${100-share}% Robusta`));
+    assert.doesNotMatch(a.el('metrics').innerHTML,/Arabica share/);
+    assert.equal((a.el('bars').innerHTML.match(/data-arabica=/g)||[]).length,a.run('eligible().length'));
+    const selectedShare=a.run('country().arabica');
+    assert.match(a.el('detail').innerHTML,new RegExp(`${selectedShare}% Arabica, ${100-selectedShare}% Robusta`));
+  }
+  a.run("filter='robusta';render()");
+  assert.match(a.el('metrics').innerHTML,/Arabica/);
+  assert.match(a.el('metrics').innerHTML,/Robusta/);
+});
+test('map marks stay compact and expanded origins can be selected', () => {
+  const a=app();
+  for(const mode of ['production','cost','mix']){
+    a.run(`mode='${mode}';render()`);
+    const marks=[...a.el('bars').innerHTML.matchAll(/class="bar-front"[^>]*width="([\d.]+)" height="([\d.]+)"/g)];
+    assert.equal(marks.length,34);
+    assert.ok(marks.every(m=>Number(m[1])<=6&&Number(m[2])<=76));
+  }
+  for(const id of ['PER','JAM','RWA','CIV','PNG','CHN']){
+    a.run(`selectCountry('${id}')`);
+    assert.match(a.el('detail').innerHTML,new RegExp(a.run('country().name')));
+  }
 });
 test('selection, supply chain, call-to-action, and zoom boundaries work', () => {
   const a = app();

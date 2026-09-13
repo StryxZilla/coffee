@@ -8,14 +8,16 @@ Run from the repository root with Node.js:
 node --test tests/state.test.cjs
 ```
 
-Six tests passed on September 13, 2026:
+Eight tests passed for the expanded atlas on September 13, 2026:
 
 1. JavaScript syntax, embedded geometry, and absence of external runtime assets or network calls.
-2. Sample total of 8.7 million tonnes, conversion to 145 million 60 kg bags, and default Brazil selection.
+2. Sample total of 10.3895 million tonnes, conversion to approximately 173.2 million 60 kg bags, and default Brazil selection.
 3. Unique origin IDs, matching country geometry, positive costs/yields, and export/cost allocations totaling 100%.
-4. Arabica and Robusta volume conservation, eligibility filtering, mixed-system classification, and fallback selection when a country is filtered out.
-5. All 100 valid layer/filter/country combinations render without NaN, undefined, or Infinity; each flow state includes four routes.
+4. Disjoint whole-origin bean filters: 21 Arabica-led, 5 Robusta-led, and 8 mixed origins. All 34 origins are covered exactly once, volumes are conserved, and incompatible selections fall back correctly.
+5. All 272 valid layer/filter/country combinations render without NaN, undefined, or Infinity; each flow state includes four routes.
 6. Country selection, export call-to-action, five supply-chain stages, and upper/lower zoom limits.
+7. Paired Arabica/Robusta summary percentages match the visible origins' weighted composition; the selected origin retains its own composition under every filter.
+8. Refined map needles stay within their width/height bounds, and expanded origins including Peru, Jamaica, Rwanda, Côte d’Ivoire, Papua New Guinea, and China can be selected.
 
 These are state/render smoke tests with a minimal DOM adapter. They do not replace a real browser, accessibility audit, or touch-device test.
 
@@ -23,7 +25,7 @@ These are state/render smoke tests with a minimal DOM adapter. They do not repla
 
 The layout includes breakpoints for phones, tablets, laptops, and wide screens. Phones use a horizontally swipeable map, large controls, a single-column detail panel, and stacked lower sections. Tablets move country details below the map. Laptops retain a side panel. Large desktops use a wider detail panel and a bounded content width.
 
-Browser verification completed against [the hosted HTTPS app](https://stryxzilla.github.io/coffee/) in the Codex in-app browser:
+The original version was browser-verified against [the hosted HTTPS app](https://stryxzilla.github.io/coffee/) in the Codex in-app browser. The expanded editorial revision is undergoing a fresh visual pass; the earlier checks below describe the original release:
 
 | Viewport | Result |
 | --- | --- |
@@ -42,7 +44,7 @@ Local-file browser navigation was blocked by the browser tool's URL policy, so b
 
 ## Product limits
 
-- The coffee dataset is synthetic and represents only eight origins; no claim is made that figures are current or verified.
+- The coffee dataset is synthetic and represents 34 origins; no claim is made that figures are current or verified.
 - Import routes are a modeled allocation to representative markets, not literal shipping lanes or consumption statistics.
 - All data is client-side and static. There are no credentials, external APIs, accounts, or backend services.
 - GitHub Pages was confirmed live over HTTPS. Changes may take a short time to propagate after a push.
