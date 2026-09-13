@@ -12,8 +12,9 @@ function app() {
   const document = {
     getElementById(id) {
       if (!elements.has(id)) elements.set(id, {
-        innerHTML: '', textContent: id === 'mapData' ? mapData : '', style: {}, attrs: {},
-        addEventListener() {}, setAttribute(k, v) { this.attrs[k] = v; },
+        innerHTML: '', textContent: id === 'mapData' ? mapData : '', style: {}, attrs: {}, handlers: {},
+        clientWidth:1100,scrollWidth:1100,scrollLeft:0,
+        addEventListener(name,fn) { (this.handlers[name]??=[]).push(fn); }, setAttribute(k, v) { this.attrs[k] = v; },
         showModal() {}, close() {},
       });
       return elements.get(id);
@@ -127,4 +128,58 @@ test('selection, supply chain, call-to-action, and zoom boundaries work', () => 
   for (let i=0;i<10;i++) a.run("document.getElementById('zoomOut').onclick()");
   assert.equal(a.run('zoom'), 1);
   assert.equal(a.el('zoomOut').disabled, true);
+});
+test('panning is bounded, persists through layer changes, and resets at default zoom',()=>{
+  const a=app();
+  a.run('zoom=2;applyZoom();panTo(-200,-160)');
+  assert.equal(a.run('camera.x'),-200);assert.equal(a.run('camera.y'),-160);
+  a.run("setMode('cost')");assert.equal(a.run('camera.x'),-200);
+  a.run('panTo(1e6,-1e6)');
+  assert.equal(a.run('camera.x'),0);assert.equal(a.run('camera.y'),-575);
+  a.run('panTo(-1e6,1e6)');
+  assert.equal(a.run('camera.x'),-1100);assert.equal(a.run('camera.y'),0);
+  a.run("document.getElementById('reset').onclick()");
+  assert.equal(a.run('camera.x'),0);assert.equal(a.run('camera.y'),0);
+  assert.equal(a.el('mapWrap').attrs['data-zoomed'],'false');
+});
+test('mobile pan bounds cover the visible scrolled viewport',()=>{
+  const a=app();a.el('world').clientWidth=860;
+  Object.assign(a.el('mapWrap'),{clientWidth:345,scrollWidth:860});
+  a.run('zoom=2;applyZoom();panTo(1e6,0)');
+  const left=a.el('mapWrap').scrollLeft/860*1100;
+  assert.ok(Math.abs(a.run('camera.x')-left)<1e-9);
+  a.run('panTo(-1e6,0)');
+  const right=(a.el('mapWrap').scrollLeft+345)/860*1100;
+  assert.ok(Math.abs(a.run('camera.x')-(right-2200))<1e-9);
+  assert.equal(a.el('mapWrap').attrs['data-zoomed'],'true');
+});
+test('mouse and touch drags suppress selection while taps and default-zoom scroll stay available',()=>{
+  for(const pointerType of ['mouse','touch']){
+    const a=app(),wrap=a.el('mapWrap'),target={capture:false,setPointerCapture(){this.capture=true},hasPointerCapture(){return this.capture},releasePointerCapture(){this.capture=false}};
+    const event=(x,y)=>({pointerId:7,isPrimary:true,button:0,clientX:x,clientY:y,pointerType,target,preventDefault(){this.prevented=true}});
+    wrap.handlers.pointerdown[0](event(300,300));
+    assert.equal(a.run('mapDrag'),null);assert.equal(target.capture,false);
+    a.run('zoom=2;applyZoom()');const before=a.run('camera.x');
+    wrap.handlers.pointerdown[0](event(300,300));
+    wrap.handlers.pointermove[0](event(303,302));
+    assert.equal(a.run('mapDrag.moved'),false);assert.equal(a.run('camera.x'),before);
+    wrap.handlers.pointerup[0](event(303,302));
+    assert.equal(a.run('suppressMapClick'),false);
+    wrap.handlers.pointerdown[0](event(300,300));
+    wrap.handlers.pointermove[0](event(400,340));
+    assert.equal(a.run('camera.x'),before+100);
+    wrap.handlers.pointerup[0](event(400,340));
+    assert.equal(target.capture,false);assert.equal(a.run('mapDrag'),null);
+    const click={detail:1,preventDefault(){this.prevented=true},stopPropagation(){this.stopped=true}};
+    wrap.handlers.click[0](click);assert.equal(click.stopped,true);
+    wrap.handlers.pointerdown[0](event(300,300));
+    wrap.handlers.pointermove[0](event(400,340));
+    wrap.handlers.pointercancel[0](event(400,340));
+    assert.equal(a.run('mapDrag'),null);assert.equal(target.capture,false);
+    const keyboard={detail:0,preventDefault(){throw Error('Keyboard click blocked')},stopPropagation(){throw Error('Keyboard click blocked')}};
+    wrap.handlers.click[0](keyboard);
+    a.run("document.getElementById('reset').onclick()");
+    wrap.handlers.pointerdown[0](event(300,300));
+    assert.equal(a.run('suppressMapClick'),false);
+  }
 });

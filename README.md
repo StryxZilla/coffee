@@ -8,7 +8,7 @@ An interactive, dependency-free atlas of coffee origins and trade. Open `index.h
 - Filter whole origins by Arabica-led, Robusta-led, or mixed growing systems.
 - Select a country on the map or in the origin comparison table.
 - Trace exports and explore five stages from growing to consumption.
-- Zoom around the selected origin. On phones, swipe horizontally across the map; use the comparison table for an alternative country selector.
+- Zoom around the selected origin, then drag with a mouse or one finger to pan within the map boundaries. Click or tap an origin to select it. At default zoom, phones retain native horizontal map scrolling; use the origin picker or comparison table as alternatives.
 - Open Data & methodology for definitions and limitations.
 
 ## Data
@@ -17,7 +17,7 @@ Coffee figures are **synthetic examples**, not verified current statistics. The 
 
 Filters select whole origins: Arabica-led means at least 80% Arabica; Robusta-led means at least 80% Robusta; mixed systems means neither bean reaches 80%. These categories are disjoint. Production, costs, yield, composition, and exports always describe whole origins. The paired summary composition is volume-weighted across the origins in view. Mint and amber segments encode Arabica and Robusta consistently in production and composition needles; cyan cost needles use a separate scale.
 
-Production needle height uses a square-root scale to keep small origins visible; exact values remain available in the table and country panel. Composition needles have equal total heights, while cost needle heights use a linear scale. Flow destinations are a simplified allocation to four markets, not real shipping lanes or a measure of final consumption. Eight dependency-free tests cover the full 272 valid layer/filter/origin combinations and the composition semantics.
+Production needle height uses a square-root scale to keep small origins visible; exact values remain available in the table and country panel. Composition needles have equal total heights, while cost needle heights use a linear scale. Flow destinations are a simplified allocation to four markets, not real shipping lanes or a measure of final consumption. Eleven dependency-free tests cover the full 272 valid layer/filter/origin combinations, composition semantics, and map panning.
 
 Geography: [Natural Earth 1:110m countries](https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/), public domain. Country geometry is embedded and has no external runtime dependency.
 

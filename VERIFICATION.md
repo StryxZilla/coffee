@@ -8,7 +8,7 @@ Run from the repository root with Node.js, without installing dependencies:
 node tests/state.test.cjs
 ```
 
-Eight tests passed for the expanded atlas on September 13, 2026:
+Eleven tests passed for the expanded atlas on September 13, 2026:
 
 1. JavaScript syntax, embedded geometry, and absence of external runtime assets or network calls.
 2. Sample total of 10.3895 million tonnes, conversion to approximately 173.2 million 60 kg bags, and default Brazil selection.
@@ -18,6 +18,9 @@ Eight tests passed for the expanded atlas on September 13, 2026:
 6. Country selection, export call-to-action, five supply-chain stages, and upper/lower zoom limits.
 7. Paired Arabica/Robusta summary percentages match the visible origins' weighted composition; the selected origin retains its own composition under every filter.
 8. Refined map needles stay within their width/height bounds, and expanded origins including Peru, Jamaica, Rwanda, Côte d’Ivoire, Papua New Guinea, and China can be selected.
+9. Map panning stays bounded, persists when switching layers, and resets at default zoom.
+10. Mobile pan limits account for the narrower, horizontally scrolled viewport.
+11. Mouse and touch pointer sequences distinguish taps from drags, suppress drag-generated clicks, release capture on cancellation, preserve keyboard activation, and leave native scrolling available at default zoom.
 
 These are state/render smoke tests with a minimal DOM adapter. They do not replace a real browser, accessibility audit, or touch-device test.
 

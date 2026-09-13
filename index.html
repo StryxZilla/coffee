@@ -21,6 +21,10 @@ body{background:radial-gradient(ellipse at 80% 0%,#153333 0%,#091718 65%)}
 @media(max-width:560px){.header{padding:16px}.brand{font-size:22px}.brand svg{width:26px}.sample-tag{font-size:9px;padding:5px 6px;letter-spacing:.6px}main{padding:23px 14px}.page-heading{margin-bottom:23px}.page-heading .eyebrow{font-size:10px;letter-spacing:1.6px}h1{font-size:33px;max-width:290px;line-height:1.1;margin-top:9px}.mode-switch{display:flex;margin-top:21px}.mode-switch button{min-width:0;font-size:12px;padding:9px 6px;min-height:40px}.metrics{grid-template-columns:1fr 1fr;gap:20px 0;margin-bottom:25px}.metric{padding-left:18px}.metric:nth-child(3){padding-left:0}.metric-label{font-size:10px;letter-spacing:.8px;margin-bottom:6px}.metric-value{font-size:28px;line-height:1.2}.metric-value>small{display:inline;margin-left:4px;font-size:11px}.metric-note{font-size:11px;line-height:1.5;max-width:150px}.summary-composition{font-size:18px;display:flex;flex-wrap:wrap;gap:0 7px;line-height:1.55}.summary-composition small{font-size:11px}.summary-track{height:4px;max-width:145px;margin-top:5px}.workspace{border-color:#385250}.map-top{display:block;padding:20px 16px 0}.map-title{font-size:24px}.map-caption{font-size:12px;max-width:270px}.filter-label{margin-top:13px;display:flex;justify-content:space-between}.filter-label>span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px}.filter-label select{max-width:175px;font-size:12px;min-height:36px}.world{width:860px}.map-wrap{min-height:0}.map-label{font-size:11px}.map-bottom{padding:0 14px 15px;align-items:end}.legend{font-size:11px;gap:6px;max-width:220px}.legend>span:last-child{display:block;flex-basis:100%;font-size:10px}.map-tools{gap:4px}.map-tools button{width:34px;height:36px}.map-hint{font-size:10px;padding:10px 14px}.detail{padding:22px}.detail-extra{display:block}.detail h2{font-size:35px}.detail-stats{gap:20px}.detail-value{font-size:23px}.detail-stats .label{font-size:12px}.subline{margin-bottom:21px}.origin-picker{max-width:175px;min-height:36px;font-size:13px}.detail-rank{display:inline;margin-left:8px}.detail .eyebrow{font-size:10px}.chip{font-size:12px}.lower{grid-template-columns:1fr;margin-top:22px;gap:22px}.lower-title h2{font-size:21px}.row-select{min-height:31px}.chain-body{padding:15px}.chain-body p{font-size:14px}.chain-body h3{font-size:21px}.chain button{font-size:12px}.chain .step-number{width:29px;height:29px}.growing{font-size:14px}.table-wrap{max-height:345px}}
 
 .dot.cyan{background:var(--cyan)}@media(max-width:560px){.header{gap:10px}}
+.map-wrap[data-zoomed="true"]{overflow:hidden;touch-action:none;cursor:grab;user-select:none}
+.map-wrap[data-zoomed="true"] .world{touch-action:none}
+.map-wrap[data-dragging="true"],.map-wrap[data-dragging="true"] *{cursor:grabbing!important}
+@media(max-width:560px){.map-pane:has(.map-wrap[data-zoomed="true"]) .map-hint span:first-child:before{content:''}}
 </style>
 </head>
 <body>
@@ -83,6 +87,8 @@ for(const [id,name,region,pos,production,arabica,cost,yieldValue,exports,elevati
 }
 const markets={USA:{name:'United States',short:'United States',pos:[-97,38]},DEU:{name:'Germany',short:'Germany',pos:[10,51]},ITA:{name:'Italy',short:'Italy',pos:[13,42]},JPN:{name:'Japan',short:'Japan',pos:[138,37]},ESP:{name:'Spain',short:'Spain',pos:[-4,40]}};
 let mode='production',filter='all',selected='BRA',step=0,zoom=1;
+const camera={x:0,y:0,zoom:1,origin:null,width:0};
+let mapDrag=null,suppressMapClick=false;
 const $=id=>document.getElementById(id),fmt=n=>n.toLocaleString('en-US',{maximumFractionDigits:1}),money=n=>'$'+n.toFixed(2),point=([lon,lat])=>[55+(lon+180)/360*990,64+(82-lat)/140*445],country=()=>origins.find(c=>c.id===selected);
 const eligible=()=>origins.filter(c=>filter==='all'||filter==='arabica'&&c.arabica>=80||filter==='robusta'&&c.arabica<=20||filter==='mixed'&&c.arabica>20&&c.arabica<80);
 const volume=c=>c.production;
@@ -144,7 +150,55 @@ function renderChain(){const c=country();document.querySelectorAll('[data-step]'
  const body=[['At the origin',`${c.name}: grown at ${c.elevation}`,c.grow],['After the harvest','From cherry to green bean',c.process],['Moving beyond the farm',`${fmt(c.production*c.exports/100)}k tonnes exported`,`${c.exports}% of ${c.name}’s sample crop enters export channels after milling, grading, and consolidation. ${fmt(c.production*(1-c.exports/100))}k tonnes remain for domestic use. Select Flows to explore representative import markets.`],['At the destination','Green beans become roasted coffee','Importers deliver green coffee to roasters, who develop flavor through heat and time. Blending, roasting losses, packaging, and distribution add costs beyond the farm estimate. Some imported coffee is re-exported.'],['The last mile','From a producing farm to a daily ritual','Roasted coffee reaches cafés, retailers, homes, and instant-coffee processors. Import volumes also include processing and re-export activity, so trade flows alone cannot measure how much people drink.']][step];
  $('chainBody').innerHTML=`<div class="overline">${body[0]}</div><h3>${body[1]}</h3><p>${body[2]}</p>`;
 }
-function applyZoom(){const [cx,cy]=point(country().pos);const x=zoom===1?0:550-cx*zoom,y=zoom===1?0:300-cy*zoom;$('mapScene').setAttribute('transform',`translate(${x} ${y}) scale(${zoom})`);$('zoomOut').disabled=zoom<=1;$('zoomIn').disabled=zoom>=2.5;const wrap=$('mapWrap');if(wrap.scrollWidth>wrap.clientWidth)wrap.scrollLeft=(zoom===1?cx:550)/1100*$('world').clientWidth-wrap.clientWidth/2;}
+function panBounds(){
+ const wrap=$('mapWrap'),scale=($('world').clientWidth||1100)/1100;
+ const left=(wrap.scrollLeft||0)/scale,right=left+(wrap.clientWidth||1100)/scale;
+ return {minX:right-1100*zoom,maxX:left,minY:575*(1-zoom),maxY:0};
+}
+function panTo(x,y){
+ const b=panBounds();
+ camera.x=zoom===1?0:Math.max(b.minX,Math.min(b.maxX,x));
+ camera.y=zoom===1?0:Math.max(b.minY,Math.min(b.maxY,y));
+ $('mapScene').setAttribute('transform',`translate(${camera.x} ${camera.y}) scale(${zoom})`);
+}
+function applyZoom(){
+ if(mapDrag)endMapDrag({pointerId:mapDrag.id});
+ const [cx,cy]=point(country().pos),wrap=$('mapWrap'),width=$('world').clientWidth||1100;
+ const recenter=camera.origin!==selected||camera.width!==width||camera.zoom===1||zoom===1;
+ if(recenter&&wrap.scrollWidth>wrap.clientWidth)wrap.scrollLeft=(zoom===1?cx:550)/1100*width-wrap.clientWidth/2;
+ if(zoom===1)panTo(0,0);
+ else if(recenter)panTo(550-cx*zoom,300-cy*zoom);
+ else {const ratio=zoom/camera.zoom;panTo(550+(camera.x-550)*ratio,300+(camera.y-300)*ratio)}
+ camera.zoom=zoom;camera.origin=selected;camera.width=width;
+ $('zoomOut').disabled=zoom<=1;$('zoomIn').disabled=zoom>=2.5;
+ wrap.setAttribute('data-zoomed',String(zoom>1));
+ $('mapHint').textContent=zoom>1?'Drag to move around the map. Click or tap an origin to select it.':mode==='flows'?'Connections show trade relationships, not actual shipping lanes.':'Select a needle, country, or origin in the comparison table.';
+}
+function endMapDrag(e){
+ if(!mapDrag||e.pointerId!==mapDrag.id)return;
+ const drag=mapDrag;mapDrag=null;
+ if(drag.moved)suppressMapClick=true;
+ $('mapWrap').setAttribute('data-dragging','false');
+ if(drag.target.hasPointerCapture?.(drag.id))drag.target.releasePointerCapture(drag.id);
+}
+$('mapWrap').addEventListener('pointerdown',e=>{
+ if(!mapDrag&&e.isPrimary!==false&&e.button===0)suppressMapClick=false;
+ if(zoom<=1||mapDrag||e.isPrimary===false||e.button!==0)return;
+ mapDrag={id:e.pointerId,startX:e.clientX,startY:e.clientY,x:camera.x,y:camera.y,scale:($('world').clientWidth||1100)/1100,moved:false,target:e.target};
+ e.target.setPointerCapture?.(e.pointerId);
+});
+$('mapWrap').addEventListener('pointermove',e=>{
+ if(!mapDrag||e.pointerId!==mapDrag.id)return;
+ const dx=e.clientX-mapDrag.startX,dy=e.clientY-mapDrag.startY;
+ if(!mapDrag.moved&&Math.hypot(dx,dy)<6)return;
+ mapDrag.moved=true;e.preventDefault();
+ $('mapWrap').setAttribute('data-dragging','true');$('tip').style.display='none';
+ panTo(mapDrag.x+dx/mapDrag.scale,mapDrag.y+dy/mapDrag.scale);
+});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])$('mapWrap').addEventListener(event,endMapDrag);
+$('mapWrap').addEventListener('click',e=>{
+ if(suppressMapClick&&e.detail!==0){suppressMapClick=false;e.preventDefault();e.stopPropagation()}
+},true);
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('beanFilter').onchange=e=>{filter=e.target.value;if(!eligible().some(c=>c.id===selected))selected=eligible()[0].id;render()};
 $('world').addEventListener('click',e=>{const target=e.target.closest('[data-origin],.producer');if(target)selectCountry(target.dataset.origin||target.dataset.country)});
@@ -154,7 +208,7 @@ document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{step=Number(b
 $('zoomIn').onclick=()=>{zoom=Math.min(2.5,zoom+.5);applyZoom()};$('zoomOut').onclick=()=>{zoom=Math.max(1,zoom-.5);applyZoom()};$('reset').onclick=()=>{zoom=1;applyZoom()};
 for(const id of ['about','methodology'])$(id).onclick=()=>$('dataDialog').showModal();
 $('dataDialog').addEventListener('click',e=>{if(e.target===$('dataDialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close()}});
-$('mapWrap').addEventListener('pointermove',e=>{const marker=e.target.closest('[data-origin]');if(!marker){$('tip').style.display='none';return}const c=origins.find(o=>o.id===marker.dataset.origin),r=$('mapWrap').getBoundingClientRect();$('tip').innerHTML=`<strong>${c.name}</strong>${fmt(volume(c))}k t · ${money(c.cost)}/kg`;Object.assign($('tip').style,{display:'block',left:Math.max(6,Math.min(e.clientX-r.left+14,r.width-215))+'px',top:Math.max(6,e.clientY-r.top-65)+'px'})});$('mapWrap').addEventListener('pointerleave',()=>$('tip').style.display='none');
+$('mapWrap').addEventListener('pointermove',e=>{const marker=e.target.closest('[data-origin]');if(mapDrag?.moved||!marker){$('tip').style.display='none';return}const c=origins.find(o=>o.id===marker.dataset.origin),r=$('mapWrap').getBoundingClientRect();$('tip').innerHTML=`<strong>${c.name}</strong>${fmt(volume(c))}k t · ${money(c.cost)}/kg`;Object.assign($('tip').style,{display:'block',left:Math.max(6,Math.min(e.clientX-r.left+14,r.width-215))+'px',top:Math.max(6,e.clientY-r.top-65)+'px'})});$('mapWrap').addEventListener('pointerleave',()=>$('tip').style.display='none');
 document.defaultView?.addEventListener('resize',applyZoom);
 render();
 </script>
