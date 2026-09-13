@@ -2,10 +2,10 @@
 
 ## Automated checks
 
-Run from the repository root with Node.js:
+Run from the repository root with Node.js, without installing dependencies:
 
 ```sh
-node --test tests/state.test.cjs
+node tests/state.test.cjs
 ```
 
 Eight tests passed for the expanded atlas on September 13, 2026:
@@ -25,20 +25,28 @@ These are state/render smoke tests with a minimal DOM adapter. They do not repla
 
 The layout includes breakpoints for phones, tablets, laptops, and wide screens. Phones use a horizontally swipeable map, large controls, a single-column detail panel, and stacked lower sections. Tablets move country details below the map. Laptops retain a side panel. Large desktops use a wider detail panel and a bounded content width.
 
-The original version was browser-verified against [the hosted HTTPS app](https://stryxzilla.github.io/coffee/) in the Codex in-app browser. The expanded editorial revision is undergoing a fresh visual pass; the earlier checks below describe the original release:
+The expanded 34-origin edition was verified against [the hosted HTTPS app](https://stryxzilla.github.io/coffee/) in the Codex in-app browser on September 13, 2026. All four layers—Production, Cost, Composition, and Flows—were checked at every size below: 24 layer/viewport cases. Every case had no horizontal page overflow or detail-panel overflow, rendered all 34 origin markers, and showed four routes only in flow mode.
 
 | Viewport | Result |
 | --- | --- |
 | 320 × 720 small phone | No horizontal page overflow; all layer controls fit; comparison table and consumption stage usable. |
-| 390 × 844 iPhone size | No horizontal page overflow; single-column layout, horizontally scrollable map, layer switching, filtering, and Indonesia export selection verified. |
+| 390 × 844 iPhone size | Paired composition labels and color track remain legible; single-column panels, map filters, and origin picker work. |
 | 768 × 1024 iPad portrait | No horizontal page overflow; full map visible and country details moved below it. |
-| 1024 × 768 iPad landscape | No horizontal page overflow; side panel fits at 290 px. |
+| 1024 × 768 iPad landscape | Map and profile fit side by side without overflow. |
 | 1440 × 900/1000 laptop | No horizontal page overflow; map and country profile appear side by side. |
-| 2560 × 1440 extra-wide | No horizontal page overflow; main content remains bounded at 1800 px; four export routes render. |
+| 2560 × 1440 extra-wide | Main content is bounded at 1920 px with a 355 px profile panel; four export routes render. |
 
-Additional real-browser checks passed: all four visualization modes; mixed filter yields four origin rows; Robusta filter yields five; selecting Indonesia updates the title, profile, and four routes; keyboard Enter selects Colombia and retains marker focus; filtering out Colombia selects Brazil; zoom and reset update the map transform; Escape closes the methodology dialog and restores focus to its opener; the Consume stage updates its content. Browser warning/error log was empty.
+Additional real-browser checks passed:
 
-Visual review led to improved spacing between India and Ethiopia labels and map recentering after viewport changes. Phone map navigation uses native horizontal overflow, and country buttons in the table provide an alternative to map selection. The app honors the operating system's reduced-motion preference.
+- Every filter produces matching map, comparison-table, and origin-picker counts: 21 Arabica-led, 5 Robusta-led, 8 mixed, and 34 total.
+- The visible composition summary reads 99% Arabica / 1% Robusta for Arabica-led origins and 8% / 92% for Robusta-led origins. Both shares remain explicit.
+- Choosing Papua New Guinea updates its profile. Its export action draws four routes and reports 52.3k tonnes exported in the modeled scenario.
+- Keyboard Enter selects Jamaica and retains focus on its marker. Applying the Robusta-led filter then falls back to Vietnam.
+- Cost needles use cyan, distinct from mint Arabica and amber Robusta; the legend and summary note reflect the active layer.
+- The methodology dialog opens, closes with Escape, and restores focus to its opener.
+- Browser warning/error logs were empty.
+
+The revised layout was visually inspected on laptop, phone, and tablet views; wide-screen structure was also measured in the browser. Compact needles replace large blocks, secondary labels are reduced, and the selected origin remains emphasized. Phone map navigation uses native horizontal overflow, while the origin picker and table provide alternatives to small map targets. The app honors the operating system's reduced-motion preference.
 
 Local-file browser navigation was blocked by the browser tool's URL policy, so browser QA used the published HTTPS app. Viewport checks emulate screen dimensions; they are not tests on physical devices. Mobile Safari, actual touch gestures, assistive technology, and a formal accessibility audit remain unverified.
 
